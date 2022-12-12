@@ -28,7 +28,7 @@ namespace AdventOfCode
         
         static void Main(string[] args)
         {
-            var solution = new Day6();
+            var solution = new Day12();
             solution.Solution();
         }
     }

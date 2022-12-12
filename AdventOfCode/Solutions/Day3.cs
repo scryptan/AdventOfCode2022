@@ -26,15 +26,9 @@ namespace AdventOfCode.Solutions
 
                 var symbol = first.Intersect(second.Intersect(third)).Single();
                 var result = (int)symbol;
-                if (result >= 97)
-                {
-                    result -= 96;
-                }
-                else
-                {
-                    result = result - 64 + 26;
-                }
-             
+                
+                result = result >= 97 ? result - 96 : result - 64 + 26;
+                
                 priorities.Add(result);
                 Console.WriteLine(symbol);
             }
