@@ -1,4 +1,5 @@
-﻿using AdventOfCode.Solutions;
+﻿using System;
+using AdventOfCode.Solutions;
 
 namespace AdventOfCode
 {
@@ -6,7 +7,7 @@ namespace AdventOfCode
     {
         static void Main(string[] args)
         {
-            var solution = new Day11();
+            var solution = new Day14();
             solution.Solution();
         }
     }

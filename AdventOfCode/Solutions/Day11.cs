@@ -24,63 +24,6 @@ namespace AdventOfCode.Solutions
             {
                 var splitted = line.Split(Environment.NewLine,
                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                var operationArray = splitted[2].Replace("Operation: new = ", string.Empty).Split(' ',
-                    StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                Func<BigInteger, BigInteger> operation = x => x;
-
-                var opSet = false;
-                if (operationArray[0] == "old" && operationArray[2] == "old")
-                {
-                    operation = operationArray[1] switch
-                    {
-                        "*" => i => BigInteger.Multiply(i, i),
-                        "+" => i => BigInteger.Add(i, i),
-                        "-" => i => BigInteger.Subtract(i, i),
-                        "/" => i => BigInteger.Divide(i, i),
-                        _ => throw new ArgumentOutOfRangeException()
-                    };
-                    opSet = true;
-                }
-                if (opSet != true && operationArray[0] == "old")
-                {
-                    var secondOp = int.Parse(operationArray[2]);
-                    operation = operationArray[1] switch
-                    {
-                        "*" => i => BigInteger.Multiply(i, secondOp),
-                        "+" => i => BigInteger.Add(i, secondOp),
-                        "-" => i => BigInteger.Subtract(i, secondOp),
-                        "/" => i => BigInteger.Divide(i, secondOp),
-                        _ => throw new ArgumentOutOfRangeException()
-                    };
-                    opSet = true;
-                }
-                
-                if (opSet != true && operationArray[2] == "old")
-                {
-                    var secondOp = int.Parse(operationArray[0]);
-                    operation = operationArray[1] switch
-                    {
-                        "*" => i => BigInteger.Multiply(i, secondOp),
-                        "+" => i => BigInteger.Add(i, secondOp),
-                        "-" => i => BigInteger.Subtract(i, secondOp),
-                        "/" => i => BigInteger.Divide(i, secondOp),
-                        _ => throw new ArgumentOutOfRangeException()
-                    };
-                }
-                else if(opSet != true)
-                {
-                    var firstOp = int.Parse(operationArray[0]);
-                    var secondOp = int.Parse(operationArray[2]);
-                    operation = operationArray[1] switch
-                    {
-                        "*" => i => BigInteger.Multiply(firstOp, secondOp),
-                        "+" => i => BigInteger.Add(firstOp, secondOp),
-                        "-" => i => BigInteger.Subtract(firstOp, secondOp),
-                        "/" => i => BigInteger.Divide(firstOp, secondOp),
-                        _ => throw new ArgumentOutOfRangeException()
-                    };
-                }
-
 
                 var monkey = new Monkey
                 {
@@ -90,10 +33,11 @@ namespace AdventOfCode.Solutions
                     Items = splitted[1]
                         .Replace("Starting items: ", String.Empty)
                         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                        .Select(BigInteger.Parse).ToList(),
-                    Operation = operation,
-                    Test = c => BigInteger.Remainder(c, (BigInteger.Parse(splitted[3].Split(' ',
-                        StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Last()))) == 0,
+                        .Select(long.Parse).ToList(),
+                    Operation = splitted[2].Split(" =",
+                    StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Last(),
+                    Divisor = int.Parse(splitted[3].Split(' ',
+                        StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Last()),
                     TrueMonkeyId = int.Parse(splitted[4].Split(' ',
                         StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Last()),
                     FalseMonkeyId = int.Parse(splitted[5].Split(' ',
@@ -121,17 +65,19 @@ namespace AdventOfCode.Solutions
                     foreach (var monkeyStartingItem in monkey.Items)
                     {
                         res[monkey.Id]++;
-                        var newWorry = BigInteger.Divide(monkey.Operation(monkeyStartingItem), 3);
-                        
-                        if (monkey.Test(newWorry))
+                        var op = DoOperation(monkey, monkeyStartingItem);
+                        var newWorry = op / 3;
+
+                        if (newWorry % monkey.Divisor == 0)
                             monkeys[monkey.TrueMonkeyId].Items.Add(newWorry);
                         else
                             monkeys[monkey.FalseMonkeyId].Items.Add(newWorry);
                     }
+
                     monkey.Items.Clear();
                 }
             }
-            
+
             foreach (var monkey in monkeys)
             {
                 Console.WriteLine($"Monkey {monkey.Id}: {string.Join(", ", monkey.Items)}");
@@ -144,7 +90,7 @@ namespace AdventOfCode.Solutions
             }
 
             var resPart = res.OrderDescending().Take(2).ToList();
-            
+
             return $"Part 1: {resPart.First() * resPart.Last()}";
         }
 
@@ -158,22 +104,24 @@ namespace AdventOfCode.Solutions
             {
                 foreach (var monkey in monkeys)
                 {
-                    foreach (var monkeyStartingItem in monkey.Items)
+                    foreach (var item in monkey.Items)
                     {
                         res[monkey.Id]++;
-                        var newWorry = monkey.Operation(monkeyStartingItem);
+                        var newWorry = DoOperation(monkey, item);
+
+                        newWorry %= GetLeastCommonMultiple(monkeys);
                         
-                        if (monkey.Test(newWorry))
+                        if (newWorry % monkey.Divisor == 0)
                             monkeys[monkey.TrueMonkeyId].Items.Add(newWorry);
                         else
                             monkeys[monkey.FalseMonkeyId].Items.Add(newWorry);
                     }
+
                     monkey.Items.Clear();
                 }
 
-                Console.WriteLine(i);
             }
-            
+
             foreach (var monkey in monkeys)
                 Console.WriteLine($"Monkey {monkey.Id}: {string.Join(", ", monkey.Items)}");
 
@@ -181,18 +129,37 @@ namespace AdventOfCode.Solutions
             for (int i = 0; i < res.Count; i++)
                 Console.WriteLine($"Monkey {i} inspected items {res[i]} times.");
 
-            var resPart = res.OrderDescending().Take(2).ToList();
-            
+            var resPart = res.OrderDescending().Take(2).Select(x => (long)x).ToList();
+
             return $"Part 2: {resPart.First() * resPart.Last()}";
         }
+
+        private static long DoOperation(Monkey monkey, long item)
+        {
+            var temp = long.TryParse(monkey.Operation.Split(' ')[^1], out var value) ? value : item;
+
+            if (monkey.Operation.Contains("+"))
+            {
+                item += temp;
+            }
+            else if (monkey.Operation.Contains("*"))
+            {
+                item *= temp;
+            }
+
+            return item;
+        }
+
+        private static long GetLeastCommonMultiple(IEnumerable<Monkey> monkeys) =>
+            monkeys.Aggregate(1, (accum, monkey) => accum * monkey.Divisor);
     }
 
     internal class Monkey
     {
         public int Id { get; set; }
-        public List<BigInteger> Items { get; set; } = new();
-        public Func<BigInteger, BigInteger> Operation { get; set; }
-        public Func<BigInteger, bool> Test { get; set; }
+        public List<long> Items { get; set; } = new();
+        public string Operation { get; set; }
+        public int Divisor { get; set; }
         public int TrueMonkeyId { get; set; }
         public int FalseMonkeyId { get; set; }
     }
