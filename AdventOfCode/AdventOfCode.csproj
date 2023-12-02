@@ -21,6 +21,19 @@
       <None Update="Inputs\day15.txt">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
+      <None Update="Inputs\day16.txt">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Inputs\day17.txt">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+      <PackageReference Include="Vostok.ClusterClient.Core" Version="0.1.47" />
+      <PackageReference Include="Vostok.ClusterClient.Transport" Version="0.1.34" />
+      <PackageReference Include="Vostok.Logging.Console" Version="1.0.9" />
     </ItemGroup>
 
 </Project>

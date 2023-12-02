@@ -12,211 +12,115 @@ namespace AdventOfCode.Solutions
 {
     public class Day15
     {
+        private const string FileUri = "./Inputs/day15.txt";
+
         public void Solution()
         {
-            var input = File.ReadAllText("./Inputs/day15.txt")
+            var input = File.ReadAllText(FileUri)
                 .Split($"{Environment.NewLine}")
-                .Select(x => x.Trim())
+                .Select(x => Parse(x.Trim()))
                 .ToList();
-            
-            // Console.WriteLine(Part1(input));
+
+            Console.WriteLine(Part1(input));
             Console.WriteLine(Part2(input));
         }
 
-        private string Part1(List<string> lines)
+        private string Part1(List<(V sensor, V beacon)> lines)
         {
-            var mapDiff = 0;
-            var (maxX, maxY, map) = GetMap(lines, mapDiff);
-            var sandStartX = map.GetLength(0) - (maxX - 500 - mapDiff/4 + 1);
-            // map[sandStartX, 0] = 3;
-            // map[sandStartX, maxY + mapDiff/4 + 1 + 2] = 3;
-            PrintMap(map);
-            Simulate(map, sandStartX);
-            PrintMap(map);
+            var res = GetRanges(lines, 2_000_000).Select(x =>  x.end - x.start).Sum();
 
-            var res = CountSandPieces(map);
-            
             return $"Part 1: {res} pieces rest";
         }
 
-        private string Part2(List<string> lines)
+        private string Part2(List<(V sensor, V beacon)> lines)
         {
-            var mapDiff = 1000;
-            var (maxX, maxY, map) = GetMap(lines, mapDiff);
-            var sandStartX = map.GetLength(0) - (maxX - 500 - mapDiff/4 + 1);
-            var floorY = maxY + 2;
-            for (int x = 0; x < map.GetLength(0); x++)
+            const long uppBound = 4_000_000;
+            for (int y = 0; y < uppBound; y++)
             {
-                map[x, floorY] = 1;
+                var ranges = GetRanges(lines, y);
+                var rangesLength = ranges.Count;
+                var start = ranges.First().start;
+                var end = ranges.First().end;
+                
+                if(rangesLength == 1 && start <= 0 && end >= uppBound)
+                    continue;
+                
+                if(rangesLength == 1 && start > 0)
+                    return $"Part 2: {0 * uppBound + y} first";
+                
+                if(rangesLength == 1 && end < uppBound)
+                    return $"Part 2: {uppBound * uppBound + y} second";
+                
+                if(rangesLength == 2)
+                    return $"Part 2: {(end + 1) * uppBound + y} third";
             }
-            // PrintMap(map);
-            Simulate(map, sandStartX);
-            PrintMap(map);
-
-            var res = CountSandPieces(map);
+            var res = 0;
             return $"Part 2: {res} pieces rest";
         }
 
-        private void Simulate(byte[,] map, int xStart)
+        private List<(long start, long end)> GetRanges(List<(V sensor, V beacon)> lines, int lineToSearch)
         {
-            (int x, int y) sandPoint = (xStart, 0);
+            var ranges = new List<(long start, long end)>();
 
-            var rightCorner = map.GetLength(0);
-            var downCorner = map.GetLength(1);
-            bool shouldClear = true;
-            
-            while (sandPoint.y < downCorner - 1)
+            foreach (var (sensor, beacon) in lines)
             {
-                if(map[xStart, 0] == 2)
-                    break;
-                
-                // PrintMap(map);
-                if (shouldClear)
+                var radius = GetManhattanLength(beacon, sensor);
+                var distance = Math.Abs(lineToSearch - sensor.Y);
+                if (distance < radius)
                 {
-                    map[sandPoint.x, sandPoint.y] = 0;
+                    var left = radius - distance;
+                    var start = sensor.X - left;
+                    var end = sensor.X + left;
+                    ranges.Add((start, end));
                 }
-                else
-                {
-                    shouldClear = true;
-                }
+            }
 
-                if (CanGoTo(map, sandPoint.x, sandPoint.y + 1))
+            ranges.Sort();
+            var i = 0;
+            while (i < ranges.Count - 1)
+            {
+                if (ranges[i].end >= ranges[i + 1].start)
                 {
-                    ++sandPoint.y;
-                    map[sandPoint.x, sandPoint.y] = 2;
+                    ranges[i] = (ranges[i].start, Math.Max(ranges[i].end, ranges[i + 1].end));
+                    ranges.RemoveAt(i + 1);
                     continue;
                 }
-                
-                if(sandPoint.x - 1 < 0)
-                    break;
 
-                if (CanGoTo(map, sandPoint.x - 1, sandPoint.y + 1))
-                {
-                    ++sandPoint.y;
-                    --sandPoint.x;
-                    
-                    map[sandPoint.x, sandPoint.y] = 2;
-                    continue;
-                }
-                
-                if(sandPoint.x + 1 >= rightCorner)
-                    break;
-
-                if (CanGoTo(map, sandPoint.x + 1, sandPoint.y + 1))
-                {
-                    ++sandPoint.y;
-                    ++sandPoint.x;
-                    
-                    map[sandPoint.x, sandPoint.y] = 2;
-                    continue;
-                }
-                
-                map[sandPoint.x, sandPoint.y] = 2;
-                sandPoint = (xStart, 0);
-                shouldClear = false;
+                i++;
             }
 
-            if (shouldClear)
-                map[sandPoint.x, sandPoint.y] = 0;
+            return ranges;
         }
 
-        private bool CanGoTo(byte[,] map, int x, int y) => map[x, y] != 1 && map[x, y] != 2;
-        private (int maxX, int maxY, byte[,] map) GetMap(List<string> linesToBuild, int mapDiff)
+        private (V sensor, V beacon) Parse(string line)
         {
-            var maxX = 0;
-            var minX = int.MaxValue;
-            
-            var maxY = 0;
-            var minY = int.MaxValue;
-            
-            foreach (var line in linesToBuild)
-            {
-                foreach (var lineByArrow in line.Split("->", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
-                {
-                    var lineSplit = lineByArrow.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToList();
-                    var x = lineSplit.First();
-                    var y = lineSplit.Last();
-    
-                    if (maxX < x)
-                        maxX = x;
-                    
-                    if (minX > x)
-                        minX = x;
-                    
-                    if (maxY < y)
-                        maxY = y;
-                    
-                    if (minY > y)
-                        minY = y;
-                }
-            }
+            var splitLine = line.Split(':', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            var forSensor = splitLine[0]
+                .Replace("Sensor at", string.Empty)
+                .Replace("x=", string.Empty)
+                .Replace("y=", string.Empty)
+                .Trim()
+                .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .Select(int.Parse)
+                .ToArray();
+            var sensor = new V(forSensor.First(), forSensor.Last());
 
-            maxX += mapDiff / 2;
-            // maxY += mapDiff / 2;
-            
-            var map = new byte[maxX - minX + 1, maxY + 3];
+            var forBeacon = splitLine[1]
+                .Replace("closest beacon is at ", string.Empty)
+                .Replace("x=", string.Empty)
+                .Replace("y=", string.Empty)
+                .Trim()
+                .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .Select(int.Parse)
+                .ToArray();
 
-            foreach (var line in linesToBuild)
-            {
-                (int x, int y) previousPoint = (-1, -1);
-                foreach (var lineByArrow in line.Split("->", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
-                {
-                    var lineSplit = lineByArrow.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToList();
-                    var x = map.GetLength(0) - (maxX - lineSplit.First() + 1) + mapDiff / 4;
-                    var y = map.GetLength(1) - (maxY - lineSplit.Last() + 1) - 2;
-
-                    if (previousPoint is {x: >= 0, y: >= 0})
-                    {
-                        if(previousPoint.x == x)
-                            for (var dy = 0; dy <= Math.Abs(previousPoint.y - y); dy++)
-                                map[x, previousPoint.y + dy * Math.Sign(y - previousPoint.y)] = 1;
-                        
-                        if(previousPoint.y == y)
-                            for (var dx = 0; dx <= Math.Abs(previousPoint.x - x); dx++)
-                                map[previousPoint.x + dx * Math.Sign(x - previousPoint.x), y] = 1;
-                        
-                    }
-
-                    previousPoint.x = x;
-                    previousPoint.y = y;
-                }
-            }
-            
-            return (maxX, maxY, map);
+            var beacon = new V(forBeacon.First(), forBeacon.Last());
+            return (sensor, beacon);
         }
 
-        private long CountSandPieces(byte[,] map)
+        private long GetManhattanLength(V start, V end)
         {
-            long res = 0L;
-            for (int y = 0; y < map.GetLength(1); y++)
-                for (int x = 0; x < map.GetLength(0); x++)
-                    if (map[x, y] == 2)
-                        ++res;
-
-            return res;
-        }
-        private void PrintMap(byte[,] map)
-        {
-            var sb = new StringBuilder();
-            for (int y = 0; y < map.GetLength(1); y++)
-            {
-                for (int x = 0; x < map.GetLength(0); x++)
-                {
-                    var symbol = map[x, y] switch
-                    {
-                        0 => '.',
-                        1 => '#',
-                        2 => 'o',
-                        3 => '+',
-                        _ => throw new ArgumentOutOfRangeException()
-                    };
-                    sb.Append(symbol);
-                }
-
-                sb.AppendLine();
-            }
-
-            Console.WriteLine(sb);
+            return Math.Abs(start.X - end.X) + Math.Abs(start.Y - end.Y);
         }
     }
 }

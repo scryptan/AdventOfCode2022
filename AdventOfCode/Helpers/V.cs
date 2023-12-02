@@ -1,4 +1,6 @@
-﻿namespace AdventOfCode.Helpers;
+﻿using System;
+
+namespace AdventOfCode.Helpers;
 
 public struct V
 {
@@ -18,7 +20,17 @@ public struct V
         
         return v.X == X && v.Y == Y;
     }
-    
+
+    public bool Equals(V other)
+    {
+        return X == other.X && Y == other.Y;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(X, Y);
+    }
+
     public static bool operator==(V first, V second)
     {
         return first.Equals(second);
@@ -27,5 +39,19 @@ public struct V
     public static bool operator !=(V first, V second)
     {
         return !(first == second);
+    }
+
+    public static V operator -(V first, V second)
+    {
+        return new V
+        {
+            X = first.X - second.X,
+            
+        };
+    }
+
+    public override string ToString()
+    {
+        return $"X={X}, Y={Y}";
     }
 }
