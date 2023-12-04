@@ -1,8 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace AdventOfCode.Helpers;
+﻿namespace AdventOfCode2023.Helpers;
 
 public static class Extensions
 {
