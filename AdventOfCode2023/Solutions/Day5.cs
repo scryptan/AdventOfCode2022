@@ -2,13 +2,13 @@
 
 public class Day5
 {
-    private readonly Dictionary<long, long> _seedToSoil = new();
-    private readonly Dictionary<long, long> _soilToFertilizer = new();
-    private readonly Dictionary<long, long> _fertilizerToWater = new();
-    private readonly Dictionary<long, long> _waterToLight = new();
-    private readonly Dictionary<long, long> _lightToTemperature = new();
-    private readonly Dictionary<long, long> _temperatureToHumidity = new();
-    private readonly Dictionary<long, long> _humidityToLocation = new();
+    private readonly List<Coord> _seedToSoil = new();
+    private readonly List<Coord> _soilToFertilizer = new();
+    private readonly List<Coord> _fertilizerToWater = new();
+    private readonly List<Coord> _waterToLight = new();
+    private readonly List<Coord> _lightToTemperature = new();
+    private readonly List<Coord> _temperatureToHumidity = new();
+    private readonly List<Coord> _humidityToLocation = new();
 
     public void Solution()
     {
@@ -26,8 +26,8 @@ public class Day5
             .Select(long.Parse)
             .ToList();
 
-        var currentDict = _seedToSoil;
-
+        var currList = _seedToSoil;
+        int lineIndex = 1;
         foreach (var line in input.Skip(1))
         {
             if (string.IsNullOrEmpty(line))
@@ -35,8 +35,9 @@ public class Day5
 
             if (line.Contains("map"))
             {
-                var mapName = line.Split(' ', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)[0];
-                currentDict = mapName switch
+                var mapName =
+                    line.Split(' ', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)[0];
+                currList = mapName switch
                 {
                     "seed-to-soil" => _seedToSoil,
                     "soil-to-fertilizer" => _soilToFertilizer,
@@ -50,34 +51,99 @@ public class Day5
 
                 continue;
             }
-            
+
             var coords = line.Split(' ', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
             var destRangeStart = long.Parse(coords[0]);
             var sourceRangeStart = long.Parse(coords[1]);
             var lengthRange = long.Parse(coords[2]);
-            
-            for (var i = 0; i < lengthRange; i++)
-                currentDict[sourceRangeStart + i] = destRangeStart + i;
+
+            currList.Add(new Coord
+            {
+                SourceRangeStart = sourceRangeStart,
+                DestinationRangeStart = destRangeStart,
+                RangeLength = lengthRange
+            });
+
+            ++lineIndex;
+            Console.WriteLine(lineIndex);
         }
 
 
-        Console.WriteLine(Part1());
-        Console.WriteLine(Part2());
+        Console.WriteLine(Part1(seeds));
+        Console.WriteLine(Part2(seeds));
     }
 
     private string Part1(List<long> seeds)
     {
-        var res = "";
-        
-        
-        
+        var res = long.MaxValue;
+
+        foreach (var seed in seeds)
+        {
+            var location = GetLocationFromSeed(seed);
+            res = Math.Min(res, location);
+        }
+
+
         return $"Part 1: {res}";
     }
 
-    private string Part2()
+    private string Part2(List<long> seeds)
     {
-        var res = "";
+        var res = long.MaxValue;
 
-        return $"Part 2: \n{res}";
+        for (int i = 0; i < seeds.Count; i += 2)
+        {
+            var startSeed = seeds[i];
+            var lengthSeed = seeds[i + 1];
+
+            for (long j = startSeed; j < startSeed + lengthSeed; j++)
+            {
+                var location = GetLocationFromSeed(j);
+                res = Math.Min(res, location);
+            }
+
+            Console.WriteLine($"{i + 1} pairs worked");
+        }
+
+        return $"Part 2: {res}";
+    }
+
+    private long GetLocationFromSeed(long seed)
+    {
+        var soil = GetValue(seed, _seedToSoil);
+        var fertilizer = GetValue(soil, _soilToFertilizer);
+        var water = GetValue(fertilizer, _fertilizerToWater);
+        var light = GetValue(water, _waterToLight);
+        var temperature = GetValue(light, _lightToTemperature);
+        var humidity = GetValue(temperature, _temperatureToHumidity);
+
+        return GetValue(humidity, _humidityToLocation);
+    }
+
+    private long GetValue(long seed, List<Coord> dictionary)
+    {
+        var values = dictionary
+            .Select(x => x.GetValue(seed))
+            .Where(x => x != -1)
+            .ToArray();
+
+        if(values.Length == 0) return seed;
+        
+        return values[0];
+    }
+
+    struct Coord
+    {
+        public long SourceRangeStart { get; set; }
+        public long DestinationRangeStart { get; set; }
+        public long RangeLength { get; set; }
+        
+        public long GetValue(long seed)
+        {
+            if (seed < SourceRangeStart || seed >= SourceRangeStart + RangeLength)
+                return -1;
+
+            return DestinationRangeStart + (seed - SourceRangeStart);
+        }
     }
 }
