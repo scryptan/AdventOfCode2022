@@ -89,21 +89,59 @@ public class Day5
 
     private string Part2(List<long> seeds)
     {
-        var res = long.MaxValue;
+        var mappings = new List<List<Coord>>
+        {
+            _seedToSoil,
+            _soilToFertilizer,
+            _fertilizerToWater,
+            _waterToLight,
+            _lightToTemperature,
+            _temperatureToHumidity,
+            _humidityToLocation
+        };
 
+        var curr = new List<(long start, long length)>();
         for (int i = 0; i < seeds.Count; i += 2)
         {
             var startSeed = seeds[i];
             var lengthSeed = seeds[i + 1];
+            curr.Add((startSeed, lengthSeed));
+        }
 
-            for (long j = startSeed; j < startSeed + lengthSeed; j++)
+        foreach (var mapping in mappings)
+        {
+            var next = new List<(long start, long length)>();
+            foreach (var c in curr)
             {
-                var location = GetLocationFromSeed(j);
-                res = Math.Min(res, location);
+                var used = new List<(long start, long length)>();
+
+                foreach (var m in mapping)
+                {
+                    var (start, end) = (Math.Max(c.start, m.SourceRangeStart),
+                        Math.Min(c.start + c.length, m.SourceRangeStart + m.RangeLength));
+                    
+                    if(end < start) continue;
+                    used.Add((start, end - start));
+                    next.Add((m.DestinationRangeStart + (start - m.SourceRangeStart), end - start));
+                }
+                
+                used.Sort((a, b) => a.start.CompareTo(b.start));
+                var s = c.start;
+                foreach (var u in used)
+                {
+                    if (s < u.start)
+                        next.Add((s, u.start - s));
+                    
+                    s = u.start + u.length;
+                }
+                if (s < c.start + c.length)
+                    next.Add((s, c.start + c.length - s));
             }
 
-            Console.WriteLine($"{i + 1} pairs worked");
+            curr = next.ToList();
         }
+
+        var res = curr.Min(x => x.start);
 
         return $"Part 2: {res}";
     }
@@ -127,8 +165,8 @@ public class Day5
             .Where(x => x != -1)
             .ToArray();
 
-        if(values.Length == 0) return seed;
-        
+        if (values.Length == 0) return seed;
+
         return values[0];
     }
 
@@ -137,7 +175,7 @@ public class Day5
         public long SourceRangeStart { get; set; }
         public long DestinationRangeStart { get; set; }
         public long RangeLength { get; set; }
-        
+
         public long GetValue(long seed)
         {
             if (seed < SourceRangeStart || seed >= SourceRangeStart + RangeLength)
