@@ -4,13 +4,12 @@ namespace AdventOfCode2023.Solutions;
 
 public class Day8
 {
-    private static StringSplitOptions _splitOptions =
-        StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries;
+    private const StringSplitOptions SplitOptions = StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries;
 
     public void Solution()
     {
         var input = File.ReadAllText($"./Inputs/{GetType().Name.ToLowerInvariant()}.txt")
-            .Split("\n", _splitOptions)
+            .Split("\n", SplitOptions)
             .ToList();
 
         var rule = input.First();
@@ -18,8 +17,8 @@ public class Day8
 
         foreach (var line in input.Skip(1))
         {
-            var key = line.Split("=", _splitOptions).First();
-            var values = line.Split("=", _splitOptions).Last().Split(",", _splitOptions);
+            var key = line.Split("=", SplitOptions).First();
+            var values = line.Split("=", SplitOptions).Last().Split(",", SplitOptions);
 
             dict.Add(key, (values.First().Replace("(", string.Empty), values.Last().Replace(")", string.Empty)));
         }

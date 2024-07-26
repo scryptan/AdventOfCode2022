@@ -2,12 +2,11 @@
 
 public class DayN
 {
-
+    private const StringSplitOptions SplitOptions = StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries;
     public void Solution()
     {
         var input = File.ReadAllText($"./Inputs/{GetType().Name.ToLowerInvariant()}.txt")
-            .Split("\n")
-            .Select(x => x.Trim())
+            .Split("\n", SplitOptions)
             .ToList();
 
 
