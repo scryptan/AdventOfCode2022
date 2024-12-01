@@ -34,14 +34,7 @@ public class Day1
                 {
                     if (firstDigit == -1)
                     {
-                        if (char.IsDigit(line[i]))
-                        {
-                            firstDigit = int.Parse(line[i].ToString());
-                        }
-                        else
-                        {
-                            firstDigit = textDigits[testDigit];
-                        }
+                        firstDigit = char.IsDigit(line[i]) ? int.Parse(line[i].ToString()) : textDigits[testDigit];
                     }
                     else
                     {
@@ -63,10 +56,10 @@ public class Day1
         }
 
         res = list.Sum();
-        foreach (var a in list)
-        {
-            Console.WriteLine(a);
-        }
+        // foreach (var a in list)
+        // {
+        //     Console.WriteLine(a);
+        // }
 
         Console.WriteLine(res);
     }

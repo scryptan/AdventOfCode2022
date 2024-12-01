@@ -19,8 +19,9 @@
 
 # Mono auto generated files
 mono_crash.*
-
+.idea
 # Build results
+[Ii]nputs/
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
